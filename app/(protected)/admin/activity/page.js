@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/components/UserProvider";
 import { SALES_STATUSES } from "@/components/SalesStatusSelect";
+import CallStatusSelect from "@/components/CallStatusSelect";
 import RowActionsDropdown from "@/components/RowActionsDropdown";
 import ProspectActionsModal from "@/components/ProspectActionsModal";
 
@@ -208,6 +209,7 @@ export default function AllActivityPage() {
                   <th>Date</th>
                   <th>Outcome</th>
                   <th>Notes</th>
+                  <th>Call Status</th>
                   <th>Sales Status</th>
                   <th style={{ width: 48 }}></th>
                 </tr>
@@ -228,6 +230,21 @@ export default function AllActivityPage() {
                     <td><OutcomePill value={item.outcome} /></td>
                     <td style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13, color: "var(--latte)" }}>
                       {item.notes || "—"}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      {canActOn(item) ? (
+                        <CallStatusSelect
+                          prospectId={String(item.prospectId)}
+                          value={item.callStatus || "not_called"}
+                          onChange={(next) => {
+                            setItems((prev) => prev.map((x) => String(x.prospectId) === String(item.prospectId) ? { ...x, callStatus: next } : x));
+                          }}
+                        />
+                      ) : (
+                        <span className="badge" style={{ color: "var(--latte)", background: "var(--cream-2)" }}>
+                          {item.callStatus || "not_called"}
+                        </span>
+                      )}
                     </td>
                     <td><StatusPill value={item.salesStatus || "new"} /></td>
                     <td onClick={(e) => e.stopPropagation()} style={{ padding: "6px 8px" }}>

@@ -7,6 +7,7 @@ import NotesPanel from "@/components/NotesPanel";
 import CallsPanel from "@/components/CallsPanel";
 import EditProspectModal from "@/components/EditProspectModal";
 import SalesStatusSelect from "@/components/SalesStatusSelect";
+import CallStatusSelect from "@/components/CallStatusSelect";
 
 const DETAIL_FIELDS = [
   ["category", "Category"],
@@ -126,6 +127,13 @@ export default function ProspectDetailPage() {
                 {prospect.hasWebsite ? "Has website" : "No website"}
               </span>
             </span>
+            {(isPrivileged || isContactedBy || isAssignee) && (
+              <CallStatusSelect
+                prospectId={id}
+                value={prospect.callStatus || "not_called"}
+                onChange={(next) => setProspect((p) => ({ ...p, callStatus: next }))}
+              />
+            )}
             {(isPrivileged || isContactedBy || isAssignee) && (
               <SalesStatusSelect
                 prospectId={id}

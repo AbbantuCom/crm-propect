@@ -7,6 +7,7 @@ import AddProspectModal from "@/components/AddProspectModal";
 import RowActionsDropdown from "@/components/RowActionsDropdown";
 import ProspectActionsModal from "@/components/ProspectActionsModal";
 import SalesStatusSelect from "@/components/SalesStatusSelect";
+import CallStatusSelect, { CALL_STATUSES } from "@/components/CallStatusSelect";
 
 export default function DashboardPage() {
   const user = useUser();
@@ -32,11 +33,14 @@ export default function DashboardPage() {
   const [category, setCategory] = useState("");
   const [hasWebsite, setHasWebsite] = useState("");
   const [location, setLocation] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [statusCounts, setStatusCounts] = useState({});
+  const [allTotal, setAllTotal] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
   const [activeAction, setActiveAction] = useState(null); // { prospectId, companyName, tab }
 
   const stateRef = useRef({});
-  stateRef.current = { search, category, hasWebsite, location, page };
+  stateRef.current = { search, category, hasWebsite, location, page, callStatus: activeTab === "all" ? "" : activeTab };
 
   const load = useCallback(async (opts = {}) => {
     setLoading(true);
@@ -49,9 +53,11 @@ export default function DashboardPage() {
       hasWebsite: opts.hasWebsite ?? s.hasWebsite,
       location: opts.location ?? s.location,
     });
+    const callStatus = opts.callStatus !== undefined ? opts.callStatus : (s.callStatus || "");
+    if (callStatus) params.set("callStatus", callStatus);
 
     try {
-      const res = await fetch(`/api/prospects?${params.toString()}`);
+      const res = await fetch(`/api/prospects?${params.toString()}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Could not load prospects");
       const data = await res.json();
       setItems(data.items);
@@ -59,6 +65,8 @@ export default function DashboardPage() {
       setTotalPages(data.totalPages);
       setCategories(data.categories);
       setPage(data.page);
+      setStatusCounts(data.statusCounts || {});
+      setAllTotal(data.allTotal || 0);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -76,12 +84,17 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [search, location]);
 
+  useEffect(() => {
+    load({ page: 1, callStatus: activeTab === "all" ? "" : activeTab });
+  }, [activeTab]);
+
   function resetFilters() {
     setSearch("");
     setCategory("");
     setHasWebsite("");
     setLocation("");
-    load({ page: 1, search: "", category: "", hasWebsite: "", location: "" });
+    setActiveTab("all");
+    load({ page: 1, search: "", category: "", hasWebsite: "", location: "", callStatus: "" });
   }
 
   return (
@@ -146,7 +159,31 @@ export default function DashboardPage() {
 
       {error && <div className="error-text">{error}</div>}
 
-      <div className="card" style={{ overflowX: "auto" }}>
+      {/* Call Status Tabs */}
+      <div className="cs-tabs">
+        {[{ value: "all", label: "All", color: "#241d19" }, ...CALL_STATUSES].map((tab) => {
+          const isActive = activeTab === tab.value;
+          const count = tab.value === "all" ? allTotal : (statusCounts[tab.value] || 0);
+          return (
+            <button
+              key={tab.value}
+              className={`cs-tab${isActive ? " cs-tab-active" : ""}`}
+              onClick={() => setActiveTab(tab.value)}
+              style={isActive ? { borderBottomColor: tab.color, color: tab.color } : {}}
+            >
+              {tab.label}
+              <span
+                className="cs-tab-count"
+                style={isActive ? { background: tab.color + "22", color: tab.color, borderColor: tab.color + "44" } : {}}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="card" style={{ overflowX: "auto", borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: "none" }}>
         <table>
           <thead>
             <tr>
@@ -156,6 +193,7 @@ export default function DashboardPage() {
               <th>Phone</th>
               <th>Website</th>
               <th>Contacted By</th>
+              <th>Call Status</th>
               <th>Sales Status</th>
               <th style={{ width: 48 }}></th>
             </tr>
@@ -163,13 +201,13 @@ export default function DashboardPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className="empty-state">
+                <td colSpan={10} className="empty-state">
                   Loading prospects...
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={9} className="empty-state">
+                <td colSpan={10} className="empty-state">
                   No prospects match these filters.
                 </td>
               </tr>
@@ -199,6 +237,22 @@ export default function DashboardPage() {
                     ) : (
                       <span className="badge" style={{ background: "var(--cream-2)", color: "var(--latte)", fontSize: 11 }}>
                         Uncontacted
+                      </span>
+                    )}
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {canActOn(p) ? (
+                      <CallStatusSelect
+                        prospectId={p._id}
+                        value={p.callStatus || "not_called"}
+                        onChange={(next) => {
+                          setItems((prev) => prev.map((x) => x._id === p._id ? { ...x, callStatus: next } : x));
+                          load();
+                        }}
+                      />
+                    ) : (
+                      <span className="badge" style={{ color: "var(--latte)", background: "var(--cream-2)" }}>
+                        {p.callStatus || "not_called"}
                       </span>
                     )}
                   </td>

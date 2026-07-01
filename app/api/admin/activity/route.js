@@ -63,6 +63,7 @@ export async function GET(request) {
           companyName: "$prospectData.companyName",
           category: "$prospectData.category",
           salesStatus: "$prospectData.salesStatus",
+          callStatus: "$prospectData.callStatus",
           contactedBy: "$prospectData.contactedBy",
           assignedTo: "$prospectData.assignedTo",
           contactPerson: "$prospectData.contactPerson",

@@ -972,3 +972,53 @@ tbody tr:hover {
     font-size: 20px;
   }
 }
+
+/* ── Call Status Tabs ── */
+.cs-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 0;
+  gap: 0;
+  background: var(--white);
+  border-radius: var(--radius) var(--radius) 0 0;
+  scrollbar-width: none;
+}
+.cs-tabs::-webkit-scrollbar { display: none; }
+
+.cs-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--latte);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-bottom-color 0.15s;
+  flex-shrink: 0;
+}
+.cs-tab:hover { color: var(--coffee); }
+.cs-tab-active { font-weight: 600; }
+
+.cs-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  color: var(--latte);
+  transition: background 0.15s, color 0.15s;
+}

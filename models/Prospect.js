@@ -24,6 +24,12 @@ const ProspectSchema = new mongoose.Schema(
       default: "new",
       index: true,
     },
+    callStatus: {
+      type: String,
+      enum: ["not_called", "called", "no_answer", "voicemail", "callback", "interested", "not_interested", "do_not_call"],
+      default: "not_called",
+      index: true,
+    },
     createdBy:   { type: String, trim: true },
     contactedBy: { type: String, trim: true, index: true }, // first caller, immutable
     assignedTo:  { type: String, trim: true, index: true }, // admin-assignable, mutable
@@ -44,4 +50,7 @@ ProspectSchema.pre("save", function setHasWebsite(next) {
   next();
 });
 
-export default mongoose.models.Prospect || mongoose.model("Prospect", ProspectSchema);
+// Always re-register with the current schema so HMR picks up field additions.
+// `delete` is a no-op if the model doesn't exist yet (first boot).
+delete mongoose.models["Prospect"];
+export default mongoose.model("Prospect", ProspectSchema);

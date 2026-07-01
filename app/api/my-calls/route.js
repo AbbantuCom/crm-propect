@@ -75,6 +75,7 @@ export async function GET() {
       contactPerson: p.contactPerson,
       mobile:       p.mobile,
       tel:          p.tel,
+      callStatus:   p.callStatus,
       contactedBy:  p.contactedBy,
       assignedTo:   p.assignedTo,
       lastCallDate: s.lastCallDate  || null,

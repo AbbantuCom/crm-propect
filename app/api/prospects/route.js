@@ -17,14 +17,16 @@ export async function GET(request) {
   const category = searchParams.get("category") || "";
   const hasWebsite = searchParams.get("hasWebsite"); // "yes" | "no" | null
   const location = (searchParams.get("location") || "").trim();
+  const callStatusFilter = searchParams.get("callStatus") || "";
 
-  const query = {};
-  if (category) query.category = category;
-  if (hasWebsite === "yes") query.hasWebsite = true;
-  if (hasWebsite === "no") query.hasWebsite = { $ne: true };
-  if (location) query.address = { $regex: location, $options: "i" };
+  // Base query — no callStatus filter, used for per-tab counts
+  const baseQuery = {};
+  if (category) baseQuery.category = category;
+  if (hasWebsite === "yes") baseQuery.hasWebsite = true;
+  if (hasWebsite === "no") baseQuery.hasWebsite = { $ne: true };
+  if (location) baseQuery.address = { $regex: location, $options: "i" };
   if (search) {
-    query.$or = [
+    baseQuery.$or = [
       { companyName: { $regex: search, $options: "i" } },
       { contactPerson: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
@@ -33,15 +35,32 @@ export async function GET(request) {
     ];
   }
 
-  const [items, total, categories] = await Promise.all([
+  // Main query = base + optional callStatus tab filter
+  const query = { ...baseQuery };
+  if (callStatusFilter === "not_called") {
+    // null / missing field also counts as "not_called"
+    query.callStatus = { $in: ["not_called", null] };
+  } else if (callStatusFilter) {
+    query.callStatus = callStatusFilter;
+  }
+
+  const [items, total, categories, statusAgg] = await Promise.all([
     Prospect.find(query)
       .sort({ companyName: 1 })
       .skip((page - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
       .lean(),
     Prospect.countDocuments(query),
-    Prospect.distinct("category"),
+    Prospect.distinct("category", baseQuery),
+    Prospect.aggregate([
+      { $match: baseQuery },
+      { $group: { _id: { $ifNull: ["$callStatus", "not_called"] }, count: { $sum: 1 } } },
+    ]),
   ]);
+
+  const statusCounts = {};
+  for (const s of statusAgg) statusCounts[s._id] = s.count;
+  const allTotal = Object.values(statusCounts).reduce((a, b) => a + b, 0);
 
   // Sync contactedBy / assignedTo for every prospect on this page.
   // One aggregation covers both directions: backfill when missing, clear when stale.
@@ -85,6 +104,8 @@ export async function GET(request) {
     pageSize: PAGE_SIZE,
     totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
     categories: categories.filter(Boolean).sort(),
+    statusCounts,
+    allTotal,
   });
 }
 

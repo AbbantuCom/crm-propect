@@ -117,6 +117,13 @@ export default function Sidebar({ email, role }) {
         <div className="sidebar-footer">
           <div className="sidebar-user-email">{email}</div>
           <span className="role-badge" style={{ marginBottom: 12, display: "inline-block" }}>{role}</span>
+          <Link href="/profile" className="btn btn-sm" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setOpen(false)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            My Profile
+          </Link>
           <button className="btn btn-sm sidebar-logout" onClick={handleLogout}>
             Log out
           </button>

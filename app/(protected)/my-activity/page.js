@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/components/UserProvider";
 import { SALES_STATUSES } from "@/components/SalesStatusSelect";
+import CallStatusSelect from "@/components/CallStatusSelect";
 import ProspectActionsModal from "@/components/ProspectActionsModal";
 import RowActionsDropdown from "@/components/RowActionsDropdown";
 
@@ -119,6 +120,7 @@ export default function MyActivityPage() {
                 <th>Last Call</th>
                 <th>Last Outcome</th>
                 <th>Total Calls</th>
+                <th>Call Status</th>
                 <th>Sales Status</th>
                 <th style={{ width: 48 }}></th>
               </tr>
@@ -141,6 +143,21 @@ export default function MyActivityPage() {
                     <span className="badge" style={{ background: "var(--cream-2)", color: "var(--coffee)", minWidth: 24, justifyContent: "center" }}>
                       {item.totalCalls}
                     </span>
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {canActOn(item) ? (
+                      <CallStatusSelect
+                        prospectId={item.prospectId}
+                        value={item.callStatus || "not_called"}
+                        onChange={(next) => {
+                          setItems((prev) => prev.map((x) => x.prospectId === item.prospectId ? { ...x, callStatus: next } : x));
+                        }}
+                      />
+                    ) : (
+                      <span className="badge" style={{ color: "var(--latte)", background: "var(--cream-2)" }}>
+                        {item.callStatus || "not_called"}
+                      </span>
+                    )}
                   </td>
                   <td><StatusPill value={item.salesStatus || "new"} /></td>
                   <td onClick={(e) => e.stopPropagation()} style={{ padding: "6px 8px" }}>

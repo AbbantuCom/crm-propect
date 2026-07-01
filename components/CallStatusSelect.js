@@ -2,29 +2,29 @@
 
 import { useState, useEffect } from "react";
 
-export const SALES_STATUSES = [
-  { value: "new",            label: "New",            color: "#6b7280", bg: "#f3f4f6" },
-  { value: "contacted",      label: "Contacted",      color: "#2563eb", bg: "#dbeafe" },
+export const CALL_STATUSES = [
+  { value: "not_called",     label: "Not Called",     color: "#6b7280", bg: "#f3f4f6" },
+  { value: "called",         label: "Called",         color: "#2563eb", bg: "#dbeafe" },
+  { value: "no_answer",      label: "No Answer",      color: "#d97706", bg: "#fef3c7" },
+  { value: "voicemail",      label: "Voicemail",      color: "#7c3aed", bg: "#ede9fe" },
+  { value: "callback",       label: "Callback",       color: "#ea580c", bg: "#ffedd5" },
   { value: "interested",     label: "Interested",     color: "#16a34a", bg: "#dcfce7" },
-  { value: "proposal_sent",  label: "Proposal Sent",  color: "#d97706", bg: "#fef3c7" },
-  { value: "negotiating",    label: "Negotiating",    color: "#7c3aed", bg: "#ede9fe" },
-  { value: "won",            label: "Won",            color: "#15803d", bg: "#bbf7d0" },
-  { value: "lost",           label: "Lost",           color: "#dc2626", bg: "#fee2e2" },
   { value: "not_interested", label: "Not Interested", color: "#9ca3af", bg: "#f9fafb" },
+  { value: "do_not_call",    label: "Do Not Call",    color: "#dc2626", bg: "#fee2e2" },
 ];
 
 function getStatus(value) {
-  return SALES_STATUSES.find((s) => s.value === value) || SALES_STATUSES[0];
+  return CALL_STATUSES.find((s) => s.value === value) || CALL_STATUSES[0];
 }
 
-export default function SalesStatusSelect({ prospectId, value, onChange }) {
-  const [status, setStatus] = useState(value || "new");
+export default function CallStatusSelect({ prospectId, value, onChange }) {
+  const [status, setStatus] = useState(value || "not_called");
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [err,    setErr]    = useState("");
 
   useEffect(() => {
-    setStatus(value || "new");
+    setStatus(value || "not_called");
   }, [value]);
 
   const current = getStatus(status);
@@ -40,7 +40,7 @@ export default function SalesStatusSelect({ prospectId, value, onChange }) {
       const res = await fetch(`/api/prospects/${prospectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ salesStatus: next }),
+        body: JSON.stringify({ callStatus: next }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -67,7 +67,7 @@ export default function SalesStatusSelect({ prospectId, value, onChange }) {
         disabled={saving}
         style={{ color: current.color, background: current.bg, borderColor: current.color + "55" }}
       >
-        {SALES_STATUSES.map((s) => (
+        {CALL_STATUSES.map((s) => (
           <option key={s.value} value={s.value}>{s.label}</option>
         ))}
       </select>
