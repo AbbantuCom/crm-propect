@@ -5,7 +5,7 @@ import CallsPanel from "@/components/CallsPanel";
 import NotesPanel from "@/components/NotesPanel";
 import { SALES_STATUSES } from "@/components/SalesStatusSelect";
 
-export default function ProspectActionsModal({ prospectId, companyName, initialTab = "calls", currentStatus, onStatusChange, onClose }) {
+export default function ProspectActionsModal({ prospectId, companyName, initialTab = "calls", currentStatus, onStatusChange, onClose, onAction }) {
   const [tab, setTab] = useState(initialTab);
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
@@ -109,7 +109,7 @@ export default function ProspectActionsModal({ prospectId, companyName, initialT
               </div>
             </div>
           )}
-          {tab === "calls" && <CallsPanel prospectId={prospectId} />}
+          {tab === "calls" && <CallsPanel prospectId={prospectId} onCallLogged={onAction} />}
           {tab === "notes" && <NotesPanel prospectId={prospectId} />}
         </div>
 

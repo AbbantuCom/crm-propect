@@ -174,7 +174,9 @@ export default function ProspectDetailPage() {
                 )}
               </div>
             ) : (
-              <div style={{ fontSize: 13, color: "var(--latte-light)" }}>Not yet contacted</div>
+              <span className="badge" style={{ background: "var(--cream-2)", color: "var(--latte)", fontSize: 12 }}>
+                Uncontacted
+              </span>
             )}
           </div>
 

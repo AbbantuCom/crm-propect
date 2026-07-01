@@ -43,31 +43,37 @@ export async function GET(request) {
     Prospect.distinct("category"),
   ]);
 
-  // Backfill contactedBy / assignedTo for legacy prospects that predate these fields.
-  const needsBackfill = items.filter((p) => !p.contactedBy).map((p) => p._id);
-  if (needsBackfill.length > 0) {
-    const firstCalls = await Call.aggregate([
-      { $match: { prospect: { $in: needsBackfill } } },
-      { $sort: { date: 1 } },
-      { $group: { _id: "$prospect", firstCaller: { $first: "$createdBy" } } },
-    ]);
-    if (firstCalls.length > 0) {
-      const callMap = {};
-      for (const c of firstCalls) callMap[String(c._id)] = c.firstCaller;
-      for (const item of items) {
-        const caller = callMap[String(item._id)];
-        if (!item.contactedBy && caller) item.contactedBy = caller;
-        if (!item.assignedTo  && caller) item.assignedTo  = caller;
+  // Sync contactedBy / assignedTo for every prospect on this page.
+  // One aggregation covers both directions: backfill when missing, clear when stale.
+  const allIds = items.map((p) => p._id);
+  const callData = await Call.aggregate([
+    { $match: { prospect: { $in: allIds } } },
+    { $sort: { date: 1 } },
+    { $group: { _id: "$prospect", firstCaller: { $first: "$createdBy" } } },
+  ]);
+  const callMap = {};
+  for (const c of callData) callMap[String(c._id)] = c.firstCaller;
+
+  for (const item of items) {
+    const firstCaller = callMap[String(item._id)];
+    if (firstCaller) {
+      // Has calls — backfill missing fields
+      if (!item.contactedBy) {
+        item.contactedBy = firstCaller;
+        Prospect.updateOne({ _id: item._id, contactedBy: { $in: [null, "", undefined] } }, { $set: { contactedBy: firstCaller } }).exec();
       }
-      for (const c of firstCalls) {
-        Prospect.updateOne(
-          { _id: c._id, contactedBy: { $in: [null, "", undefined] } },
-          { $set: { contactedBy: c.firstCaller } }
-        ).exec();
-        Prospect.updateOne(
-          { _id: c._id, assignedTo: { $in: [null, "", undefined] } },
-          { $set: { assignedTo: c.firstCaller } }
-        ).exec();
+      if (!item.assignedTo) {
+        item.assignedTo = firstCaller;
+        Prospect.updateOne({ _id: item._id, assignedTo: { $in: [null, "", undefined] } }, { $set: { assignedTo: firstCaller } }).exec();
+      }
+    } else if (item.contactedBy) {
+      // No calls — clear stale contactedBy (and assignedTo if it matched)
+      const stale = item.contactedBy;
+      item.contactedBy = null;
+      Prospect.updateOne({ _id: item._id }, { $set: { contactedBy: null } }).exec();
+      if (item.assignedTo === stale) {
+        item.assignedTo = null;
+        Prospect.updateOne({ _id: item._id, assignedTo: stale }, { $set: { assignedTo: null } }).exec();
       }
     }
   }

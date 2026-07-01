@@ -263,15 +263,10 @@ export default function AllActivityPage() {
           companyName={activeAction.companyName}
           initialTab={activeAction.tab}
           currentStatus={activeAction.salesStatus}
+          onAction={() => load({ page })}
           onStatusChange={(next) => {
             setActiveAction((a) => ({ ...a, salesStatus: next }));
-            setItems((prev) =>
-              prev.map((x) =>
-                String(x.prospectId) === activeAction.prospectId
-                  ? { ...x, salesStatus: next }
-                  : x
-              )
-            );
+            load({ page });
           }}
           onClose={() => {
             setActiveAction(null);

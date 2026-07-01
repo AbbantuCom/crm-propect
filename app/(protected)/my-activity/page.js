@@ -161,15 +161,13 @@ export default function MyActivityPage() {
           companyName={activeAction.companyName}
           initialTab={activeAction.tab}
           currentStatus={activeAction.salesStatus}
+          onAction={refresh}
           onStatusChange={(next) => {
-            // Update the modal highlight immediately
             setActiveAction((a) => ({ ...a, salesStatus: next }));
-            // Re-fetch from DB (PATCH is already committed at this point)
             refresh();
           }}
           onClose={() => {
             setActiveAction(null);
-            // Re-fetch to pick up any new calls logged via the modal
             refresh();
           }}
         />

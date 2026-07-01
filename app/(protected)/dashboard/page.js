@@ -197,7 +197,9 @@ export default function DashboardPage() {
                           : p.contactedBy.split("@")[0]}
                       </span>
                     ) : (
-                      <span style={{ color: "var(--latte-light)" }}>Uncontacted</span>
+                      <span className="badge" style={{ background: "var(--cream-2)", color: "var(--latte)", fontSize: 11 }}>
+                        Uncontacted
+                      </span>
                     )}
                   </td>
                   <td onClick={(e) => e.stopPropagation()}>
@@ -261,13 +263,15 @@ export default function DashboardPage() {
           companyName={activeAction.companyName}
           initialTab={activeAction.tab}
           currentStatus={activeAction.salesStatus}
+          onAction={load}
           onStatusChange={(next) => {
             setActiveAction((a) => ({ ...a, salesStatus: next }));
-            setItems((prev) =>
-              prev.map((x) => x._id === activeAction.prospectId ? { ...x, salesStatus: next } : x)
-            );
+            load();
           }}
-          onClose={() => setActiveAction(null)}
+          onClose={() => {
+            setActiveAction(null);
+            load();
+          }}
         />
       )}
     </div>

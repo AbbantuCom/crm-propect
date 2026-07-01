@@ -107,6 +107,7 @@ export default function CallsPanel({ prospectId, onCallLogged }) {
       }
       setEditingId(null);
       load();
+      onCallLogged?.();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -123,6 +124,7 @@ export default function CallsPanel({ prospectId, onCallLogged }) {
         throw new Error(d.error || "Could not delete");
       }
       load();
+      onCallLogged?.();
     } catch (err) {
       alert(err.message);
     } finally {

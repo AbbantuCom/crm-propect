@@ -11,16 +11,34 @@ export async function GET(request, { params }) {
   let prospect = await Prospect.findById(params.id).lean();
   if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
 
-  // Backfill contactedBy / assignedTo from earliest call (legacy prospects)
-  if (!prospect.contactedBy || !prospect.assignedTo) {
-    const firstCall = await Call.findOne({ prospect: params.id }).sort({ date: 1 }).lean();
-    if (firstCall?.createdBy) {
-      const patch = {};
-      if (!prospect.contactedBy) patch.contactedBy = firstCall.createdBy;
-      if (!prospect.assignedTo)  patch.assignedTo  = firstCall.createdBy;
+  // Sync contactedBy / assignedTo with actual call logs
+  const firstCall = await Call.findOne({ prospect: params.id }).sort({ date: 1 }).lean();
+  if (firstCall?.createdBy) {
+    // Has calls — backfill if fields are missing
+    const patch = {};
+    if (!prospect.contactedBy) patch.contactedBy = firstCall.createdBy;
+    if (!prospect.assignedTo)  patch.assignedTo  = firstCall.createdBy;
+    if (Object.keys(patch).length > 0) {
       await Prospect.updateOne({ _id: params.id }, { $set: patch });
       prospect = { ...prospect, ...patch };
     }
+  } else if (prospect.contactedBy) {
+    // No calls at all — clear stale contactedBy (and assignedTo if it matched)
+    const stale = prospect.contactedBy;
+    await Prospect.findOneAndUpdate(
+      { _id: params.id },
+      [{
+        $set: {
+          contactedBy: null,
+          assignedTo: { $cond: [{ $eq: ["$assignedTo", stale] }, null, "$assignedTo"] },
+        },
+      }]
+    );
+    prospect = {
+      ...prospect,
+      contactedBy: null,
+      assignedTo: prospect.assignedTo === stale ? null : prospect.assignedTo,
+    };
   }
 
   return Response.json({ item: prospect });

@@ -1,5 +1,6 @@
 import { dbConnect } from "@/lib/mongodb";
 import Call from "@/models/Call";
+import Prospect from "@/models/Prospect";
 import { requireRole, ROLES } from "@/lib/auth";
 
 async function getCallAndCheck(callId, user) {
@@ -38,6 +39,23 @@ export async function DELETE(request, { params }) {
   const { call, authError } = await getCallAndCheck(params.callId, user);
   if (authError) return authError;
 
+  const deletedContactedBy = call.createdBy;
   await call.deleteOne();
+
+  // If no calls remain, this prospect is no longer contacted — clear the fields
+  const remaining = await Call.countDocuments({ prospect: params.id });
+  if (remaining === 0) {
+    await Prospect.findOneAndUpdate(
+      { _id: params.id },
+      [{
+        $set: {
+          contactedBy: null,
+          // Only clear assignedTo if it was auto-set from the first caller (not manually reassigned to someone else)
+          assignedTo: { $cond: [{ $eq: ["$assignedTo", deletedContactedBy] }, null, "$assignedTo"] },
+        },
+      }]
+    );
+  }
+
   return Response.json({ ok: true });
 }
