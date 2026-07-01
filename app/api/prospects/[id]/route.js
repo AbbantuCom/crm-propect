@@ -1,0 +1,97 @@
+import { dbConnect } from "@/lib/mongodb";
+import Prospect from "@/models/Prospect";
+import Call from "@/models/Call";
+import { requireRole, ROLES } from "@/lib/auth";
+
+export async function GET(request, { params }) {
+  const { error } = await requireRole(ROLES.STAFF);
+  if (error) return error;
+
+  await dbConnect();
+  let prospect = await Prospect.findById(params.id).lean();
+  if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
+
+  // Backfill contactedBy / assignedTo from earliest call (legacy prospects)
+  if (!prospect.contactedBy || !prospect.assignedTo) {
+    const firstCall = await Call.findOne({ prospect: params.id }).sort({ date: 1 }).lean();
+    if (firstCall?.createdBy) {
+      const patch = {};
+      if (!prospect.contactedBy) patch.contactedBy = firstCall.createdBy;
+      if (!prospect.assignedTo)  patch.assignedTo  = firstCall.createdBy;
+      await Prospect.updateOne({ _id: params.id }, { $set: patch });
+      prospect = { ...prospect, ...patch };
+    }
+  }
+
+  return Response.json({ item: prospect });
+}
+
+export async function PUT(request, { params }) {
+  const { user, error } = await requireRole(ROLES.STAFF);
+  if (error) return error;
+
+  await dbConnect();
+
+  // Check if this user is allowed to edit: admin/superadmin, or the assigned staff member
+  const existing = await Prospect.findById(params.id).lean();
+  if (!existing) return Response.json({ error: "Not found" }, { status: 404 });
+
+  const isPrivileged   = user.role === "admin" || user.role === "superadmin";
+  const isContactedBy  = existing.contactedBy === user.email;
+  const isAssignee     = existing.assignedTo  === user.email;
+
+  if (!isPrivileged && !isContactedBy && !isAssignee) {
+    return Response.json({ error: "You are not assigned to this prospect" }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const prospect = await Prospect.findByIdAndUpdate(params.id, body, { new: true, runValidators: true });
+
+  return Response.json({ item: prospect });
+}
+
+export async function PATCH(request, { params }) {
+  const { user, error } = await requireRole(ROLES.STAFF);
+  if (error) return error;
+
+  await dbConnect();
+  const body = await request.json();
+
+  // ── Reassign prospect (admin/superadmin only) ──
+  if ("assignedTo" in body) {
+    if (user.role !== "admin" && user.role !== "superadmin") {
+      return Response.json({ error: "Only admins can reassign prospects" }, { status: 403 });
+    }
+    const prospect = await Prospect.findByIdAndUpdate(
+      params.id,
+      { assignedTo: body.assignedTo || null },
+      { new: true }
+    );
+    if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
+    return Response.json({ item: prospect });
+  }
+
+  // ── Sales status update (any staff) ──
+  const { salesStatus } = body;
+  const allowed = ["new", "contacted", "interested", "proposal_sent", "negotiating", "won", "lost", "not_interested"];
+  if (!allowed.includes(salesStatus)) {
+    return Response.json({ error: "Invalid salesStatus" }, { status: 400 });
+  }
+
+  const prospect = await Prospect.findByIdAndUpdate(params.id, { salesStatus }, { new: true });
+  if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
+
+  return Response.json({ item: prospect });
+}
+
+export async function DELETE(request, { params }) {
+  // Staff cannot delete prospects.
+  const { error } = await requireRole(ROLES.ADMIN);
+  if (error) return error;
+
+  await dbConnect();
+  const prospect = await Prospect.findByIdAndDelete(params.id);
+  if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
+
+  return Response.json({ ok: true });
+}
