@@ -87,6 +87,40 @@ on Company Name. If you need de-duplication behavior, that's a small follow-up c
 4. Deploy. Vercel's Hobby plan allows request bodies up to 4.5MB, which comfortably covers a
    2MB sheet upload.
 
+## Health check
+
+A public endpoint (no login required) that confirms the server is running and the database is reachable. It returns the first prospect ever created as a quick data sanity check.
+
+```
+GET /api/health
+```
+
+**Local:**
+```bash
+curl http://localhost:3000/api/health
+```
+
+**Production:**
+```bash
+curl https://your-vercel-url.vercel.app/api/health
+```
+
+**Success response (`200`):**
+```json
+{
+  "ok": true,
+  "db": "connected",
+  "firstProspect": { "_id": "...", "companyName": "Acme Ltd", ... }
+}
+```
+
+**Failure response (`500`):**
+```json
+{ "ok": false, "error": "connect ECONNREFUSED ..." }
+```
+
+`firstProspect` is `null` if the database is connected but has no prospects yet.
+
 ## Notes on how roles work
 
 Roles are stored as a Firebase **custom claim** on each user (not a separate database table),
