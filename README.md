@@ -107,19 +107,13 @@ curl https://your-vercel-url.vercel.app/api/health
 
 **Success response (`200`):**
 ```json
-{
-  "ok": true,
-  "db": "connected",
-  "firstProspect": { "_id": "...", "companyName": "Acme Ltd", ... }
-}
+{ "ok": true, "db": "connected", "prospectCount": 1732 }
 ```
 
 **Failure response (`500`):**
 ```json
 { "ok": false, "error": "connect ECONNREFUSED ..." }
 ```
-
-`firstProspect` is `null` if the database is connected but has no prospects yet.
 
 ## Notes on how roles work
 
