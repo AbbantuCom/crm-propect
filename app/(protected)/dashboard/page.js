@@ -32,6 +32,12 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [hasWebsite, setHasWebsite] = useState("");
+
+  // Restore website filter from sessionStorage on mount (read-only on mount — never write "" back)
+  useEffect(() => {
+    const saved = sessionStorage.getItem("dashboard_hasWebsite");
+    if (saved !== null) setHasWebsite(saved);
+  }, []);
   const [location, setLocation] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [statusCounts, setStatusCounts] = useState({});
@@ -92,6 +98,7 @@ export default function DashboardPage() {
     setSearch("");
     setCategory("");
     setHasWebsite("");
+    sessionStorage.setItem("dashboard_hasWebsite", "");
     setLocation("");
     setActiveTab("all");
     load({ page: 1, search: "", category: "", hasWebsite: "", location: "", callStatus: "" });
@@ -138,7 +145,7 @@ export default function DashboardPage() {
 
         <div className="filter-item">
           <label className="field-label">Website</label>
-          <select className="select" value={hasWebsite} onChange={(e) => setHasWebsite(e.target.value)}>
+          <select className="select" value={hasWebsite} onChange={(e) => { sessionStorage.setItem("dashboard_hasWebsite", e.target.value); setHasWebsite(e.target.value); }}>
             <option value="">All</option>
             <option value="yes">Has website</option>
             <option value="no">No website</option>
