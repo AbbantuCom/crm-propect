@@ -275,7 +275,7 @@ export default function DashboardPage() {
                     {canActOn(p) && (
                       <RowActionsDropdown
                         onAction={(tab) =>
-                          setActiveAction({ prospectId: p._id, companyName: p.companyName, salesStatus: p.salesStatus || "new", tab })
+                          setActiveAction({ prospectId: p._id, companyName: p.companyName, salesStatus: p.salesStatus || "new", hasWebsite: !!p.hasWebsite, tab })
                         }
                       />
                     )}
@@ -317,9 +317,15 @@ export default function DashboardPage() {
           companyName={activeAction.companyName}
           initialTab={activeAction.tab}
           currentStatus={activeAction.salesStatus}
+          currentHasWebsite={activeAction.hasWebsite}
           onAction={load}
           onStatusChange={(next) => {
             setActiveAction((a) => ({ ...a, salesStatus: next }));
+            load();
+          }}
+          onWebsiteChange={(next) => {
+            setActiveAction((a) => ({ ...a, hasWebsite: next }));
+            setItems((prev) => prev.map((x) => x._id === activeAction.prospectId ? { ...x, hasWebsite: next } : x));
             load();
           }}
           onClose={() => {

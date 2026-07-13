@@ -1,14 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CallsPanel from "@/components/CallsPanel";
 import NotesPanel from "@/components/NotesPanel";
 import { SALES_STATUSES } from "@/components/SalesStatusSelect";
 
-export default function ProspectActionsModal({ prospectId, companyName, initialTab = "calls", currentStatus, onStatusChange, onClose, onAction }) {
+export default function ProspectActionsModal({ prospectId, companyName, initialTab = "calls", currentStatus, currentHasWebsite, onStatusChange, onWebsiteChange, onClose, onAction }) {
   const [tab, setTab] = useState(initialTab);
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusSaved, setStatusSaved] = useState(false);
+  const [hasWebsite, setHasWebsite] = useState(!!currentHasWebsite);
+  const [websiteSaving, setWebsiteSaving] = useState(false);
+  const [websiteSaved, setWebsiteSaved] = useState(false);
+
+  useEffect(() => { setHasWebsite(!!currentHasWebsite); }, [currentHasWebsite]);
+
+  async function handleWebsiteChange(value) {
+    const prev = hasWebsite;
+    setHasWebsite(value);
+    setWebsiteSaving(true);
+    setWebsiteSaved(false);
+    try {
+      const res = await fetch(`/api/prospects/${prospectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasWebsite: value }),
+      });
+      if (!res.ok) {
+        setHasWebsite(prev);
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to save");
+      }
+      onWebsiteChange?.(value);
+      setWebsiteSaved(true);
+      setTimeout(() => setWebsiteSaved(false), 1800);
+    } catch (err) {
+      alert(`Could not update: ${err.message}`);
+    } finally {
+      setWebsiteSaving(false);
+    }
+  }
 
   async function handleStatusChange(next) {
     setStatusSaving(true);
@@ -63,6 +94,14 @@ export default function ProspectActionsModal({ prospectId, companyName, initialT
             </svg>
             Call Log
           </button>
+          <button className={`tab-btn${tab === "website" ? " active" : ""}`} onClick={() => setTab("website")}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+            Website
+          </button>
           <button className={`tab-btn${tab === "notes" ? " active" : ""}`} onClick={() => setTab("notes")}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -100,6 +139,43 @@ export default function ProspectActionsModal({ prospectId, companyName, initialT
                       </span>
                       {active && (
                         <svg style={{ marginLeft: "auto", color: s.color }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {tab === "website" && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <p className="page-subtitle" style={{ margin: 0 }}>Does this prospect have a website?</p>
+                {websiteSaving && <span style={{ fontSize: 12, color: "var(--latte)" }}>Saving…</span>}
+                {websiteSaved  && <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700 }}>✓ Saved</span>}
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                {[
+                  { value: true,  label: "Has Website", color: "#16a34a", bg: "#dcfce7" },
+                  { value: false, label: "No Website",  color: "#dc2626", bg: "#fee2e2" },
+                ].map((opt) => {
+                  const active = hasWebsite === opt.value;
+                  return (
+                    <button
+                      key={String(opt.value)}
+                      type="button"
+                      disabled={websiteSaving}
+                      className={`status-option${active ? " status-option-active" : ""}`}
+                      style={{ borderColor: active ? opt.color : undefined, background: active ? opt.bg : undefined, flex: 1 }}
+                      onClick={() => !active && handleWebsiteChange(opt.value)}
+                    >
+                      <span className="status-option-dot" style={{ background: opt.color }} />
+                      <span style={{ fontWeight: active ? 700 : 500, color: active ? opt.color : "var(--coffee)" }}>
+                        {opt.label}
+                      </span>
+                      {active && (
+                        <svg style={{ marginLeft: "auto", color: opt.color }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}

@@ -105,6 +105,17 @@ export async function PATCH(request, { params }) {
       return Response.json({ item: prospect });
     }
 
+    // ── Website status update (any staff) ──
+    if ("hasWebsite" in body) {
+      const prospect = await Prospect.findByIdAndUpdate(
+        params.id,
+        { $set: { hasWebsite: Boolean(body.hasWebsite) } },
+        { new: true }
+      );
+      if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
+      return Response.json({ item: prospect });
+    }
+
     // ── Call status update (any staff) ──
     if ("callStatus" in body) {
       const allowed = ["not_called", "called", "no_answer", "voicemail", "callback", "interested", "not_interested", "do_not_call"];
