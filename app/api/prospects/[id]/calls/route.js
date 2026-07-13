@@ -30,6 +30,7 @@ export async function POST(request, { params }) {
 
   // contactedBy = first caller ever (never overwritten)
   // assignedTo  = starts as first caller; admin can later reassign
+  // callStatus  = always set to "called" when any call log is created
   await Promise.all([
     Prospect.updateOne(
       { _id: params.id, contactedBy: { $in: [null, "", undefined] } },
@@ -38,6 +39,10 @@ export async function POST(request, { params }) {
     Prospect.updateOne(
       { _id: params.id, assignedTo: { $in: [null, "", undefined] } },
       { $set: { assignedTo: user.email } }
+    ),
+    Prospect.updateOne(
+      { _id: params.id },
+      { $set: { callStatus: "called" } }
     ),
   ]);
 

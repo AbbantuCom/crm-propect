@@ -50,6 +50,7 @@ export async function DELETE(request, { params }) {
       [{
         $set: {
           contactedBy: null,
+          callStatus: "not_called",
           // Only clear assignedTo if it was auto-set from the first caller (not manually reassigned to someone else)
           assignedTo: { $cond: [{ $eq: ["$assignedTo", deletedContactedBy] }, null, "$assignedTo"] },
         },

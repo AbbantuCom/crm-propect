@@ -973,6 +973,23 @@ tbody tr:hover {
   }
 }
 
+/* ── Back button ── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--latte);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.back-btn:hover { color: var(--coffee); }
+
 /* ── Call Status Tabs ── */
 .cs-tabs {
   display: flex;
