@@ -30,14 +30,12 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [hasWebsite, setHasWebsite] = useState("");
-
-  // Restore website filter from sessionStorage on mount (read-only on mount — never write "" back)
-  useEffect(() => {
-    const saved = sessionStorage.getItem("dashboard_hasWebsite");
-    if (saved !== null) setHasWebsite(saved);
-  }, []);
+  const [category, setCategory] = useState(
+    () => typeof window !== "undefined" ? (sessionStorage.getItem("dashboard_category") || "") : ""
+  );
+  const [hasWebsite, setHasWebsite] = useState(
+    () => typeof window !== "undefined" ? (sessionStorage.getItem("dashboard_hasWebsite") || "") : ""
+  );
   const [location, setLocation] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [statusCounts, setStatusCounts] = useState({});
@@ -97,6 +95,7 @@ export default function DashboardPage() {
   function resetFilters() {
     setSearch("");
     setCategory("");
+    sessionStorage.setItem("dashboard_category", "");
     setHasWebsite("");
     sessionStorage.setItem("dashboard_hasWebsite", "");
     setLocation("");
@@ -133,7 +132,7 @@ export default function DashboardPage() {
 
         <div className="filter-item">
           <label className="field-label">Category</label>
-          <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <select className="select" value={category} onChange={(e) => { sessionStorage.setItem("dashboard_category", e.target.value); setCategory(e.target.value); }}>
             <option value="">All categories</option>
             {categories.map((c) => (
               <option key={c} value={c}>

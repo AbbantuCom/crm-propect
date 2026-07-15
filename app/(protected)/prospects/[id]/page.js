@@ -9,6 +9,63 @@ import EditProspectModal from "@/components/EditProspectModal";
 import SalesStatusSelect from "@/components/SalesStatusSelect";
 import CallStatusSelect from "@/components/CallStatusSelect";
 
+function WebsiteSelect({ prospectId, value, onChange }) {
+  const [current, setCurrent] = useState(!!value);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+  const [err,     setErr]     = useState("");
+
+  useEffect(() => { setCurrent(!!value); }, [value]);
+
+  async function handleChange(e) {
+    const next = e.target.value === "yes";
+    const prev = current;
+    setCurrent(next); // optimistic
+    setSaving(true); setSaved(false); setErr("");
+    try {
+      const res = await fetch(`/api/prospects/${prospectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasWebsite: next }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to save");
+      }
+      onChange?.(next);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } catch (error) {
+      setCurrent(prev); // revert on error
+      setErr(error.message);
+      setTimeout(() => setErr(""), 3000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <span className="status-select-wrap" style={{ display: "inline-flex", verticalAlign: "middle" }} onClick={(e) => e.stopPropagation()}>
+      <select
+        className="status-select"
+        value={current ? "yes" : "no"}
+        onChange={handleChange}
+        disabled={saving}
+        style={current
+          ? { color: "#16a34a", background: "#dcfce7", borderColor: "#16a34a55" }
+          : { color: "#dc2626", background: "#fee2e2", borderColor: "#dc262655" }
+        }
+      >
+        <option value="yes">Has website</option>
+        <option value="no">No website</option>
+      </select>
+      {saving && <span className="status-indicator">…</span>}
+      {saved  && <span className="status-indicator status-saved">✓</span>}
+      {err    && <span className="status-indicator" style={{ color: "#dc2626", fontSize: 11 }} title={err}>!</span>}
+    </span>
+  );
+}
+
 const DETAIL_FIELDS = [
   ["category", "Category"],
   ["address", "Address"],
@@ -131,9 +188,17 @@ export default function ProspectDetailPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
             <span className="page-subtitle" style={{ margin: 0 }}>
               {prospect.category || "Uncategorized"} ·{" "}
-              <span className={`badge ${prospect.hasWebsite ? "badge-yes" : "badge-no"}`}>
-                {prospect.hasWebsite ? "Has website" : "No website"}
-              </span>
+              {canEdit ? (
+                <WebsiteSelect
+                  prospectId={id}
+                  value={prospect.hasWebsite}
+                  onChange={(next) => setProspect((p) => ({ ...p, hasWebsite: next }))}
+                />
+              ) : (
+                <span className={`badge ${prospect.hasWebsite ? "badge-yes" : "badge-no"}`}>
+                  {prospect.hasWebsite ? "Has website" : "No website"}
+                </span>
+              )}
             </span>
             {(isPrivileged || isContactedBy || isAssignee) && (
               <CallStatusSelect

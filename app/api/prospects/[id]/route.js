@@ -110,7 +110,7 @@ export async function PATCH(request, { params }) {
       const prospect = await Prospect.findByIdAndUpdate(
         params.id,
         { $set: { hasWebsite: Boolean(body.hasWebsite) } },
-        { new: true }
+        { new: true, strict: false }
       );
       if (!prospect) return Response.json({ error: "Not found" }, { status: 404 });
       return Response.json({ item: prospect });
