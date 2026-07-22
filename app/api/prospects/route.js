@@ -18,6 +18,7 @@ export async function GET(request) {
   const hasWebsite = searchParams.get("hasWebsite"); // "yes" | "no" | null
   const location = (searchParams.get("location") || "").trim();
   const callStatusFilter = searchParams.get("callStatus") || "";
+  const salesStatusFilter = searchParams.get("salesStatus") || "";
 
   // Base query — no callStatus filter, used for per-tab counts
   const baseQuery = {};
@@ -35,7 +36,7 @@ export async function GET(request) {
     ];
   }
 
-  // Main query = base + optional callStatus tab filter
+  // Main query = base + optional callStatus/salesStatus tab filter
   const query = { ...baseQuery };
   if (callStatusFilter === "not_called") {
     // null / missing field also counts as "not_called"
@@ -43,8 +44,11 @@ export async function GET(request) {
   } else if (callStatusFilter) {
     query.callStatus = callStatusFilter;
   }
+  if (salesStatusFilter) {
+    query.salesStatus = salesStatusFilter;
+  }
 
-  const [items, total, categories, statusAgg] = await Promise.all([
+  const [items, total, categories, statusAgg, interestedSalesCount] = await Promise.all([
     Prospect.find(query)
       .sort({ companyName: 1 })
       .skip((page - 1) * PAGE_SIZE)
@@ -56,11 +60,14 @@ export async function GET(request) {
       { $match: baseQuery },
       { $group: { _id: { $ifNull: ["$callStatus", "not_called"] }, count: { $sum: 1 } } },
     ]),
+    Prospect.countDocuments({ ...baseQuery, salesStatus: "interested" }),
   ]);
 
   const statusCounts = {};
   for (const s of statusAgg) statusCounts[s._id] = s.count;
   const allTotal = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+  // The "Interested" tab reflects sales status, not call status — override that one key.
+  statusCounts.interested = interestedSalesCount;
 
   // Sync contactedBy / assignedTo for every prospect on this page.
   // One aggregation covers both directions: backfill when missing, clear when stale.

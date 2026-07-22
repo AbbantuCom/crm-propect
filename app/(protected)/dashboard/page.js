@@ -44,7 +44,11 @@ export default function DashboardPage() {
   const [activeAction, setActiveAction] = useState(null); // { prospectId, companyName, tab }
 
   const stateRef = useRef({});
-  stateRef.current = { search, category, hasWebsite, location, page, callStatus: activeTab === "all" ? "" : activeTab };
+  stateRef.current = {
+    search, category, hasWebsite, location, page,
+    callStatus: activeTab === "all" || activeTab === "interested" ? "" : activeTab,
+    salesStatus: activeTab === "interested" ? "interested" : "",
+  };
 
   const load = useCallback(async (opts = {}) => {
     setLoading(true);
@@ -59,6 +63,8 @@ export default function DashboardPage() {
     });
     const callStatus = opts.callStatus !== undefined ? opts.callStatus : (s.callStatus || "");
     if (callStatus) params.set("callStatus", callStatus);
+    const salesStatus = opts.salesStatus !== undefined ? opts.salesStatus : (s.salesStatus || "");
+    if (salesStatus) params.set("salesStatus", salesStatus);
 
     try {
       const res = await fetch(`/api/prospects?${params.toString()}`, { cache: "no-store" });
@@ -89,7 +95,11 @@ export default function DashboardPage() {
   }, [search, location]);
 
   useEffect(() => {
-    load({ page: 1, callStatus: activeTab === "all" ? "" : activeTab });
+    load({
+      page: 1,
+      callStatus: activeTab === "all" || activeTab === "interested" ? "" : activeTab,
+      salesStatus: activeTab === "interested" ? "interested" : "",
+    });
   }, [activeTab]);
 
   function resetFilters() {
@@ -100,7 +110,7 @@ export default function DashboardPage() {
     sessionStorage.setItem("dashboard_hasWebsite", "");
     setLocation("");
     setActiveTab("all");
-    load({ page: 1, search: "", category: "", hasWebsite: "", location: "", callStatus: "" });
+    load({ page: 1, search: "", category: "", hasWebsite: "", location: "", callStatus: "", salesStatus: "" });
   }
 
   return (
